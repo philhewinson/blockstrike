@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Block Strike</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+  <div id="game"></div>
+
+  <div id="hud" class="hidden">
+    <div id="topbar">
+      <div id="top-duel" class="topgroup">
+        <div class="side you"><span>YOU</span><b id="sc-you">0</b></div>
+        <div class="mid">FIRST TO 5</div>
+        <div class="side bot"><b id="sc-bot">0</b><span>BOT</span></div>
+      </div>
+      <div id="top-surv" class="topgroup hidden">
+        <div class="side you"><span>WAVE</span><b id="sv-wave">1</b></div>
+        <div class="side bot"><b id="sv-left">0</b><span>BOTS LEFT</span></div>
+      </div>
+    </div>
+    <div id="crosshair"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="dot"></i></div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+    <div id="dmg-ring"></div>
+    <div id="banner"></div>
+    <div id="killpop"><div id="killpop-title"></div><div id="killpop-pts"></div></div>
+    <div id="toast"></div>
+    <div id="hint" class="hidden">OUT OF AMMO · grab a green ammo box or switch weapon</div>
+    <div id="center-msg" class="hidden"><div class="big">ELIMINATED</div><div>Respawning in <span id="respawn-count">3</span></div></div>
+    <div id="scope" class="hidden"><i class="h"></i><i class="v"></i></div>
+    <div id="health">
+      <div class="label">HEALTH</div>
+      <div class="row"><div class="bar"><div id="health-fill"></div></div><div id="health-num">100</div></div>
+    </div>
+    <div id="ammo">
+      <div class="label" id="wpn-name"></div>
+      <div class="count"><span id="ammo-num"></span><span class="reserve" id="ammo-res"></span></div>
+      <div id="reload-bar"><div id="reload-fill"></div></div>
+      <div id="slots"></div>
+    </div>
+    <div id="vignette"></div>
+    <div id="lowhp"></div>
+  </div>
+
+  <div id="menu" class="screen">
+    <div class="menu-wrap">
+      <div class="menu-left">
+        <h1 class="logo">BLOCK<span>STRIKE</span></h1>
+        <button id="player-chip" class="chip">PLAYING AS <b id="player-name">?</b><span>CHANGE</span></button>
+        <button id="duel-btn" class="play mode"><b>DUEL</b><small>You vs bot · first to 5</small></button>
+        <button id="surv-btn" class="play mode surv"><b>SURVIVAL</b><small>How many waves can you last?</small></button>
+        <div class="diff" id="diff">
+          <button data-d="easy">EASY</button>
+          <button data-d="normal">NORMAL</button>
+          <button data-d="hard">HARD</button>
+        </div>
+      </div>
+
+      <div class="card loadout">
+        <h2>LOADOUT</h2>
+        <div class="slot-label">PRIMARY</div>
+        <div class="choice" data-slot="primary">
+          <button data-w="rifle"><b>ASSAULT RIFLE</b><small>Full auto, steady</small></button>
+          <button data-w="sniper"><b>SNIPER</b><small>Scope, one hit = one kill</small></button>
+        </div>
+        <div class="slot-label">SECONDARY</div>
+        <div class="choice" data-slot="secondary">
+          <button data-w="smg"><b>SPRAY GUN</b><small>Super fast fire</small></button>
+          <button data-w="pistol"><b>PISTOL</b><small>Hits hard, slower</small></button>
+        </div>
+        <div class="slot-label">MELEE</div>
+        <div class="choice" data-slot="melee">
+          <button data-w="knife"><b>KNIFE</b><small>Backstab or slide-stab = instant kill</small></button>
+          <button data-w="fists"><b>FISTS</b><small>Fast punches</small></button>
+        </div>
+        <div class="util"><b>+ 2 GRENADES</b> · press G to throw</div>
+      </div>
+
+      <div class="board card">
+        <h2>LEADERBOARD · <span class="board-diff"></span></h2>
+        <div class="cols">
+          <div><h3>DUEL WINS</h3><ol id="menu-duel"></ol></div>
+          <div><h3>SURVIVAL WAVES</h3><ol id="menu-surv"></ol></div>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <span><b>WASD</b> move</span><span><b>Mouse</b> look</span><span><b>Click</b> shoot</span>
+      <span><b>Right click / E</b> aim</span><span><b>1 2 3</b> switch</span><span><b>R</b> reload</span>
+      <span><b>G</b> grenade</span><span><b>Space</b> jump</span><span><b>Shift</b> sprint</span>
+      <span><b>C</b> slide</span><span><b>Esc</b> pause</span>
+    </div>
+  </div>
+
+  <div id="desktop-only" class="screen hidden">
+    <div class="card center">
+      <h1 class="logo small">BLOCK<span>STRIKE</span></h1>
+      <h2>PLAY ON A COMPUTER</h2>
+      <p class="lead">Block Strike needs a keyboard and mouse. Open this page on a laptop or desktop to play.</p>
+      <p class="sub">Touch controls may come later.</p>
+    </div>
+  </div>
+
+  <div id="names" class="screen hidden">
+    <div class="card center name-card">
+      <h2 id="name-title">WHAT'S YOUR NAME?</h2>
+      <div id="player-list" class="player-list"></div>
+      <div id="name-new-label" class="slot-label">OR ADD A NEW PLAYER</div>
+      <form id="name-form">
+        <input id="name-input" maxlength="12" placeholder="Your name" autocomplete="off" spellcheck="false">
+        <button type="submit">GO</button>
+      </form>
+      <p id="name-error" class="err"></p>
+      <p class="sub">3 to 12 letters or numbers. Keep it friendly!</p>
+      <button id="name-cancel" class="ghost">BACK</button>
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <div class="card center">
+      <h2>PAUSED</h2>
+      <p id="pause-hint" class="hint hidden">Click Resume again to jump back in.</p>
+      <button id="resume-btn" class="play small">RESUME</button>
+      <button id="quit-btn" class="ghost">LEAVE MATCH</button>
+      <p class="sub" id="pause-sub"></p>
+    </div>
+  </div>
+
+  <div id="gameover" class="screen hidden">
+    <div class="menu-wrap">
+      <div class="card go">
+        <h2 id="go-title">VICTORY!</h2>
+        <div id="go-main"></div>
+        <div id="go-time"></div>
+        <div id="go-best"></div>
+        <div class="go-buttons">
+          <button id="again-btn" class="play small">PLAY AGAIN</button>
+          <button id="home-btn" class="ghost">HOME</button>
+        </div>
+      </div>
+      <div class="board card">
+        <h2>LEADERBOARD · <span class="board-diff"></span></h2>
+        <div class="cols">
+          <div><h3>DUEL WINS</h3><ol id="go-duel"></ol></div>
+          <div><h3>SURVIVAL WAVES</h3><ol id="go-surv"></ol></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
