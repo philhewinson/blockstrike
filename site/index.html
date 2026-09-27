@@ -30,12 +30,14 @@
     <div id="banner"></div>
     <div id="killpop"><div id="killpop-title"></div><div id="killpop-pts"></div></div>
     <div id="toast"></div>
+    <div id="nade-warn" class="hidden">GRENADE!</div>
     <div id="hint" class="hidden">OUT OF AMMO · grab a green ammo box or switch weapon</div>
     <div id="center-msg" class="hidden"><div class="big">ELIMINATED</div><div>Respawning in <span id="respawn-count">3</span></div></div>
     <div id="scope" class="hidden"><i class="h"></i><i class="v"></i></div>
     <div id="health">
       <div class="label">HEALTH</div>
       <div class="row"><div class="bar"><div id="health-fill"></div></div><div id="health-num">100</div></div>
+      <div id="power-hud"></div>
     </div>
     <div id="ammo">
       <div class="label" id="wpn-name"></div>
@@ -44,6 +46,7 @@
       <div id="slots"></div>
     </div>
     <div id="vignette"></div>
+    <div id="vignette-tp"></div>
     <div id="lowhp"></div>
   </div>
 
@@ -54,6 +57,7 @@
         <button id="player-chip" class="chip">PLAYING AS <b id="player-name">?</b><span>CHANGE</span></button>
         <button id="duel-btn" class="play mode"><b>DUEL</b><small>You vs bot · first to 5</small></button>
         <button id="surv-btn" class="play mode surv"><b>SURVIVAL</b><small>How many waves can you last?</small></button>
+        <button id="map-btn" class="chip map-chip">MAP <b id="map-name">ARENA</b><span>CHANGE ▸</span></button>
         <div class="diff" id="diff">
           <button data-d="easy">EASY</button>
           <button data-d="normal">NORMAL</button>
@@ -107,6 +111,14 @@
     </div>
   </div>
 
+  <div id="maps" class="screen hidden">
+    <div class="card maps-card">
+      <h2>CHOOSE A MAP</h2>
+      <div id="map-grid"></div>
+      <button id="maps-close" class="ghost">BACK</button>
+    </div>
+  </div>
+
   <div id="names" class="screen hidden">
     <div class="card center name-card">
       <h2 id="name-title">WHAT'S YOUR NAME?</h2>
@@ -139,6 +151,7 @@
         <div id="go-main"></div>
         <div id="go-time"></div>
         <div id="go-best"></div>
+        <div id="go-unlock" class="unlock hidden"></div>
         <div class="go-buttons">
           <button id="again-btn" class="play small">PLAY AGAIN</button>
           <button id="home-btn" class="ghost">HOME</button>

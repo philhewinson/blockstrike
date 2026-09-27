@@ -91,12 +91,19 @@ export const audio = {
     if (big) [660, 880, 1320].forEach((f, i) => tone(o, t + i * 0.05, 'square', f, f, 0.08, 0.2));
   },
   punch() { if (!ctx) return; const t = now(), o = out(0.6); burst(o, t, 0.08, 'lowpass', 900, 200, 1, 0.9); tone(o, t, 'sine', 140, 60, 0.08, 0.6); },
-  throwG() { if (!ctx) return; const t = now(), o = out(0.4); burst(o, t, 0.03, 'highpass', 4000, 3000, 1, 0.5); burst(o, t + 0.12, 0.18, 'bandpass', 1500, 500, 1.2, 0.5); },
+  throwG(vol = 1) { if (!ctx) return; const t = now(), o = out(0.4 * vol); burst(o, t, 0.03, 'highpass', 4000, 3000, 1, 0.5); burst(o, t + 0.12, 0.18, 'bandpass', 1500, 500, 1.2, 0.5); },
   bounce(vol) { if (!ctx) return; tone(out(vol), now(), 'triangle', 900, 500, 0.05, 0.3); },
   pickup() {
     if (!ctx) return;
     const t = now(), o = out(0.35);
     [784, 1047, 1319].forEach((f, i) => tone(o, t + i * 0.06, 'triangle', f, f, 0.12, 0.5));
+  },
+  pad() { if (!ctx) return; const t = now(), o = out(0.4); tone(o, t, 'sine', 180, 900, 0.35, 0.6); burst(o, t, 0.3, 'bandpass', 600, 2400, 1, 0.3); },
+  teleport() {
+    if (!ctx) return;
+    const t = now(), o = out(0.4);
+    tone(o, t, 'sine', 1400, 300, 0.4, 0.5);
+    tone(o, t + 0.05, 'triangle', 300, 1600, 0.35, 0.3);
   },
   slide() { if (!ctx) return; burst(out(0.35), now(), 0.45, 'bandpass', 900, 300, 0.8, 0.5); },
   victory() {

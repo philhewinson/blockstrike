@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { buildWorld } from './world.js';
+import { buildWorld, drawPlan } from './world.js';
+import { MAPS, mapById, progress, unlockText } from './maps.js';
 import { buildNav } from './nav.js';
 import { moveEntity, collides } from './physics.js';
 import { Bot } from './bot.js';
@@ -41,6 +42,125 @@ const world = buildWorld(scene, renderer);
 const nav = buildNav(world);
 const fx = new Effects(scene, world);
 const pickups = new Pickups(scene, world);
+
+// ---------------------------------------------------------------- Maps
+let stats = null; // this player's duel wins / survival bests, from the server (drives map unlocks)
+const isOpen = m => !m.soon && progress(m, stats).open;
+
+function loadMap(map) {
+  world.load(map);
+  nav.rebuild();
+  pickups.setSpots(map.ammo);
+  setupPowers();
+  fx.clear();
+  localStorage.setItem('blockstrike.map', map.id);
+  $('map-name').textContent = map.name;
+}
+
+async function refreshStats() {
+  const r = await online.me();
+  if (r.status === 401) { // this computer's key for the name no longer works: pick a name again
+    online.forget(online.current()?.name);
+    stats = null;
+    openNames();
+  }
+  stats = r.ok ? { duel: r.duel, surv: r.surv } : null;
+  if (!isOpen(world.map)) loadMap(MAPS[0]); // e.g. switched to a player who hasn't unlocked it
+  if (!$('maps').classList.contains('hidden')) openMaps();
+}
+
+// ---- Power-ups (Fort): Speed, Shield or Double Damage, fought over in the middle of the map
+const POWERS = {
+  speed: { name: 'SPEED', colour: 0xffd23f, time: 12 },
+  shield: { name: 'SHIELD', colour: 0x4fc3ff, time: 0 },
+  damage: { name: 'DOUBLE DAMAGE', colour: 0xff4d4d, time: 12 },
+};
+const powerItems = [];
+function setupPowers() {
+  for (const it of powerItems) scene.remove(it.group);
+  powerItems.length = 0;
+  for (const pos of world.powers) {
+    const group = new THREE.Group();
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.45), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 7, 12, 1, true).translate(0, 3.5, 0), new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    }));
+    group.add(gem, beam);
+    group.position.copy(pos);
+    scene.add(group);
+    const it = { group, gem, beam, pos, type: null, wait: 0 };
+    rollPower(it);
+    powerItems.push(it);
+  }
+}
+function rollPower(it) {
+  it.type = Object.keys(POWERS)[Math.random() * 3 | 0];
+  it.gem.material.color.setHex(POWERS[it.type].colour);
+  it.beam.material.color.setHex(POWERS[it.type].colour);
+  it.group.visible = true;
+}
+function updatePowers(dt) {
+  for (const it of powerItems) {
+    if (!it.group.visible) { it.wait -= dt; if (it.wait <= 0) rollPower(it); continue; }
+    it.gem.position.y = 0.9 + Math.sin(performance.now() / 300) * 0.12;
+    it.gem.rotation.y += dt * 2;
+    if (player.alive && Math.hypot(player.pos.x - it.pos.x, player.pos.z - it.pos.z) < 1.3 && Math.abs(player.pos.y - it.pos.y) < 1.5) {
+      const P = POWERS[it.type];
+      if (it.type === 'shield') player.shield = 50;
+      else player.power = { type: it.type, t: P.time };
+      it.group.visible = false;
+      it.wait = 20;
+      audio.pickup();
+      $('toast').textContent = `${P.name}!`;
+      restartAnim($('toast'), 'show');
+    }
+  }
+  if (player.power) { player.power.t -= dt; if (player.power.t <= 0) player.power = null; }
+}
+const dmgMult = () => (player.power?.type === 'damage' ? 2 : 1);
+
+const planCache = {};
+function openMaps() {
+  const grid = $('map-grid');
+  grid.innerHTML = '';
+  for (const m of MAPS) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    const open = isOpen(m), pr = m.unlock ? progress(m, stats) : null;
+    card.className = `map-card ${open ? 'open' : 'locked'} ${world.map === m ? 'sel' : ''}`;
+    let pic;
+    if (m.soon) {
+      pic = '<div class="map-pic soon">?</div>';
+    } else {
+      if (!planCache[m.id]) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 150;
+        drawPlan(c, m);
+        planCache[m.id] = c.toDataURL();
+      }
+      pic = `<img class="map-pic" src="${planCache[m.id]}" alt="">`;
+    }
+    let foot;
+    if (m.soon) foot = `<div class="map-req">COMING SOON</div><div class="map-sub">${unlockText(m)}</div>`;
+    else if (open) foot = `<div class="map-req ok">${world.map === m ? '✓ SELECTED' : 'PLAY HERE'}</div>`;
+    else foot = `<div class="map-sub">${unlockText(m)}</div>
+      <div class="map-bar"><i style="width:${pr.have / pr.need * 100}%"></i></div><div class="map-count">${pr.have} / ${pr.need}</div>`;
+    const feat = m.feature ? `<div class="map-feat">NEW: ${m.feature}</div>` : '';
+    card.innerHTML = `${pic}${open || m.soon ? '' : '<div class="lock">🔒</div>'}<div class="map-title">${m.name}</div>${feat}${foot}`;
+    if (open) card.addEventListener('click', () => { loadMap(m); closeMaps(); });
+    else card.disabled = true;
+    grid.appendChild(card);
+  }
+  $('menu').classList.add('hidden');
+  $('maps').classList.remove('hidden');
+}
+
+function closeMaps() {
+  $('maps').classList.add('hidden');
+  $('menu').classList.remove('hidden');
+}
+
+loadMap(mapById(localStorage.getItem('blockstrike.map')));
 const vm = new Viewmodel(innerWidth / innerHeight);
 const muzzleLight = new THREE.PointLight(0xffc877, 0, 12, 2);
 muzzleLight.position.set(0.2, -0.1, -0.9);
@@ -57,7 +177,7 @@ addEventListener('resize', () => {
 const player = {
   pos: new THREE.Vector3(), vel: new THREE.Vector3(), radius: 0.35, height: TALL, eye: EYE,
   grounded: false, blocked: false, health: 100, alive: true, yaw: 0, pitch: 0,
-  lastHurt: -99, stepOffset: 0, stride: 0, deathT: 0, respawnT: 0,
+  lastHurt: -99, stepOffset: 0, stride: 0, deathT: 0, respawnT: 0, power: null, shield: 0, padFlight: false,
   slideT: 0, slideCd: 0, crouched: false,
 };
 const gun = {
@@ -167,6 +287,7 @@ function spatial(pos) {
 
 function damagePlayer(amount, fromPos) {
   if (!player.alive || !run || run.ending || window.__game.god) return;
+  if (player.shield > 0) { const a = Math.min(player.shield, amount); player.shield -= a; amount -= a; }
   player.health -= amount;
   player.lastHurt = run.time;
   audio.hurt();
@@ -183,6 +304,8 @@ function damagePlayer(amount, fromPos) {
 const botCtx = {
   player, colliders: world.colliders, rayWorld: world.rayWorld, los: world.los,
   nav, fx, audio, camera, damagePlayer, playerRayHit, spatial,
+  botGrenade: (bot, target) => botGrenade(bot, target),
+  applyFeatures: (e, dt) => world.applyFeatures(e, dt),
 };
 
 // ---------------------------------------------------------------- Inventory
@@ -278,7 +401,7 @@ function spawnPlayer(pos, yaw) {
   player.vel.set(0, 0, 0);
   Object.assign(player, {
     health: 100, alive: true, yaw, pitch: 0, lastHurt: -99, stepOffset: 0, stride: 0, deathT: 0,
-    slideT: 0, slideCd: 0, crouched: false, height: TALL, eye: EYE,
+    slideT: 0, slideCd: 0, crouched: false, height: TALL, eye: EYE, power: null, shield: 0, padFlight: false,
   });
   camera.fov = 75;
   camera.updateProjectionMatrix();
@@ -299,6 +422,7 @@ function spawnBot() {
   const p = farSpot(player.pos, new THREE.Vector3(player.pos.x, player.pos.y + player.eye, player.pos.z), run.bots);
   const b = new Bot(scene, run.difficulty, p);
   run.bots.push(b);
+  if (world.map.theme.glowEyes) b.glowEyes();
   if (player.alive) b.startSearch(player.pos, botCtx); // it comes hunting
 }
 
@@ -413,7 +537,18 @@ function endMatch() {
   }
   $('go-time').textContent = `${run.mode === 'duel' ? 'DUEL' : 'SURVIVAL'} · ${D} · ${fmtTime(run.time)}`;
   renderBoards('go', d);
-  if (save) save.then(() => renderBoards('go', d)); // refresh once the result is in
+  $('go-unlock').classList.add('hidden');
+  if (save) save.then(async () => {
+    renderBoards('go', d); // refresh once the result is in
+    const before = MAPS.filter(isOpen);
+    await refreshStats();
+    const fresh = MAPS.filter(m => isOpen(m) && !before.includes(m));
+    if (fresh.length) {
+      $('go-unlock').textContent = `NEW MAP UNLOCKED: ${fresh.map(m => m.name).join(' + ')}!`;
+      $('go-unlock').classList.remove('hidden');
+      audio.pickup();
+    }
+  });
   $('gameover').classList.remove('hidden');
   cleanupMatch();
 }
@@ -437,6 +572,7 @@ function update(dt) {
   updateGun(dt);
   updateGrenades(dt);
   if (player.alive) pickups.update(dt, player.pos, needsAmmo, collectAmmo);
+  updatePowers(dt);
 
   for (const b of [...run.bots]) b.update(dt, botCtx);
   separateBots();
@@ -522,7 +658,7 @@ function updatePlayer(dt) {
 
   gun.sprint = !!(keys.ShiftLeft || keys.ShiftRight) && fwd > 0 && !mouseL && gun.ads < 0.5 && !sliding && !player.crouched;
   const melee = curW().kind === 'melee';
-  let speed = (gun.sprint ? 9.5 : 7) * (melee ? 1.12 : 1) - 2.8 * gun.ads;
+  let speed = (gun.sprint ? 9.5 : 7) * (melee ? 1.12 : 1) * (player.power?.type === 'speed' ? 1.35 : 1) - 2.8 * gun.ads;
   if (player.crouched) speed = 3.5;
 
   if (sliding) {
@@ -534,7 +670,7 @@ function updatePlayer(dt) {
       player.vel.x += wx * 6 * dt;
       player.vel.z += wz * 6 * dt;
     }
-  } else if (player.grounded || wl > 0) {
+  } else if (player.grounded || (wl > 0 && !player.padFlight)) {
     const t = Math.min(1, (player.grounded ? 14 : 2.5) * dt);
     player.vel.x += (wx * speed - player.vel.x) * t;
     player.vel.z += (wz * speed - player.vel.z) * t;
@@ -556,6 +692,10 @@ function updatePlayer(dt) {
 
   const wasGrounded = player.grounded, vy = player.vel.y;
   const stepped = moveEntity(player, dt, world.colliders);
+  if (player.grounded) player.padFlight = false;
+  const ev = world.applyFeatures(player, dt);
+  if (ev?.type === 'pad') audio.pad();
+  if (ev?.type === 'portal') { player.yaw = ev.exit.yaw; audio.teleport(); restartAnim($('vignette-tp'), 'show'); }
   if (stepped) player.stepOffset -= stepped;
   player.stepOffset *= Math.exp(-dt * 14);
   if (!wasGrounded && player.grounded && vy < -7) audio.footstep(0.5, 0);
@@ -680,7 +820,7 @@ function shoot(w, a) {
   let end;
   if (bh && (!wh || bh.dist < wh.dist)) {
     end = bh.point;
-    const killed = bot.takeDamage(bh.head ? w.dmg * w.headMult : w.dmg, player.pos, botCtx);
+    const killed = bot.takeDamage((bh.head ? w.dmg * w.headMult : w.dmg) * dmgMult(), player.pos, botCtx);
     fx.hit(bh.point);
     hitFeedback(bh.head, killed);
     if (killed) onBotKilled(bot, bh.head ? 'HEADSHOT!' : 'ELIMINATED');
@@ -727,7 +867,7 @@ function melee(w) {
   const rel = new THREE.Vector3(player.pos.x - bot.pos.x, 0, player.pos.z - bot.pos.z).normalize();
   const behind = -Math.sin(bot.yaw) * rel.x + -Math.cos(bot.yaw) * rel.z < 0;
   const backstab = w.backstab && (behind || player.slideT > 0);
-  const killed = bot.takeDamage(backstab ? 999 : w.dmg, player.pos, botCtx);
+  const killed = bot.takeDamage(backstab ? 999 : w.dmg * dmgMult(), player.pos, botCtx);
   fx.hit(chest.clone().addScaledVector(to.normalize(), -0.4));
   if (w === WEAPONS.fists) audio.punch(); else audio.stab(backstab);
   hitFeedback(false, killed);
@@ -753,14 +893,28 @@ function throwGrenade() {
   gun.throwT = 0;
   audio.throwG();
   const { origin, fwd } = aimBasis();
+  const vel = fwd.clone().multiplyScalar(17).add(new THREE.Vector3(0, 3.5, 0)).addScaledVector(player.vel, 0.5);
+  addGrenade(origin.clone().addScaledVector(fwd, 0.5), vel, 'player');
+}
+
+function addGrenade(pos, vel, owner) {
   const mesh = new THREE.Mesh(nadeGeo, nadeMat);
   mesh.add(nadeBand.clone());
   mesh.castShadow = true;
-  const pos = origin.clone().addScaledVector(fwd, 0.5);
   mesh.position.copy(pos);
   scene.add(mesh);
-  const vel = fwd.clone().multiplyScalar(17).add(new THREE.Vector3(0, 3.5, 0)).addScaledVector(player.vel, 0.5);
-  grenades.push({ mesh, pos, vel, fuse: 1.8 });
+  grenades.push({ mesh, pos, vel, fuse: 1.8, owner });
+}
+
+// A bot lobs a grenade in an arc so it lands about where it last saw you
+function botGrenade(bot, target) {
+  const from = new THREE.Vector3(bot.pos.x, bot.pos.y + 1.7, bot.pos.z);
+  const dx = target.x - from.x, dz = target.z - from.z, dy = target.y + 0.1 - from.y;
+  const T = clamp(Math.hypot(dx, dz) / 10, 0.9, 1.6); // a high arc, to clear walls
+  const vel = new THREE.Vector3(dx / T, (dy + 0.5 * 24 * T * T) / T, dz / T);
+  addGrenade(from, vel, 'bot');
+  const sp = spatial(bot.pos);
+  audio.throwG(sp.vol);
 }
 
 function insideLevel(p, r) {
@@ -771,6 +925,9 @@ function insideLevel(p, r) {
 }
 
 function updateGrenades(dt) {
+  // warn about a bot's grenade landing near you
+  const near = player.alive && grenades.some(g => g.owner === 'bot' && g.pos.distanceTo(player.pos) < 8);
+  $('nade-warn').classList.toggle('hidden', !near);
   for (let i = grenades.length - 1; i >= 0; i--) {
     const g = grenades[i];
     g.vel.y -= 24 * dt;
@@ -787,20 +944,27 @@ function updateGrenades(dt) {
     g.mesh.rotation.x += dt * 8;
     g.fuse -= dt;
     if (g.fuse <= 0) {
-      explode(g.pos);
+      explode(g.pos, g.owner);
       scene.remove(g.mesh);
       grenades.splice(i, 1);
     }
   }
 }
 
-function explode(pos) {
+function explode(pos, owner) {
   fx.explosion(pos);
   const sp = spatial(pos);
   audio.explosion(Math.min(1, sp.vol * 1.6), sp.pan);
   run.shake = Math.max(run.shake, Math.max(0, 1 - sp.dist / 18) * 1.2);
   const R = 6.5;
   const from = new THREE.Vector3(pos.x, pos.y + 0.3, pos.z);
+  const blast = d => Math.round(130 * Math.pow(1 - d / R, 0.7));
+  if (owner === 'bot') { // bot grenades hurt you, not other bots
+    const chest = new THREE.Vector3(player.pos.x, player.pos.y + 1.1, player.pos.z);
+    const d = chest.distanceTo(pos);
+    if (player.alive && d < R && world.los(from, chest)) damagePlayer(blast(d), pos);
+    return;
+  }
   let hit = false, anyKill = false;
   for (const bot of [...run.bots]) {
     if (!bot.alive) continue;
@@ -811,7 +975,7 @@ function explode(pos) {
       continue;
     }
     hit = true;
-    const killed = bot.takeDamage(Math.round(130 * Math.pow(1 - d / R, 0.7)), pos, botCtx);
+    const killed = bot.takeDamage(blast(d), pos, botCtx);
     if (killed) { anyKill = true; onBotKilled(bot, 'GRENADE!'); }
   }
   if (hit) hitFeedback(false, anyKill);
@@ -828,6 +992,8 @@ function setText(id, v) {
 function updateHUD() {
   const hp = Math.ceil(player.health);
   setText('health-num', hp);
+  const pw = player.power ? `${POWERS[player.power.type].name} ${Math.ceil(player.power.t)}s` : '';
+  setText('power-hud', [pw, player.shield > 0 ? `SHIELD ${Math.ceil(player.shield)}` : ''].filter(Boolean).join(' · '));
   const fill = $('health-fill');
   fill.style.width = `${player.health}%`;
   fill.style.background = hp > 60 ? '#4ade80' : hp > 30 ? '#facc15' : '#f87171';
@@ -967,6 +1133,7 @@ function choosePlayer(n) {
   $('player-name').textContent = n;
   closeNames();
   renderBoards('menu', difficulty);
+  refreshStats();
 }
 
 $('name-form').addEventListener('submit', async e => {
@@ -993,6 +1160,8 @@ $('resume-btn').addEventListener('click', () => { state = 'locking'; requestLock
 $('quit-btn').addEventListener('click', () => (run.mode === 'survival' ? endMatch() : goHome()));
 $('again-btn').addEventListener('click', () => startMatch(run.mode));
 $('home-btn').addEventListener('click', goHome);
+$('map-btn').addEventListener('click', openMaps);
+$('maps-close').addEventListener('click', closeMaps);
 
 selectDifficulty(difficulty);
 renderLoadout();
@@ -1002,8 +1171,10 @@ const touchOnly = !matchMedia('(any-pointer: fine)').matches;
 if (touchOnly) {
   $('menu').classList.add('hidden');
   $('desktop-only').classList.remove('hidden');
-} else if (online.current()) $('player-name').textContent = online.current().name;
-else openNames();
+} else if (online.current()) {
+  $('player-name').textContent = online.current().name;
+  refreshStats();
+} else openNames();
 
 // ---------------------------------------------------------------- Main loop
 let last = performance.now();
@@ -1024,6 +1195,7 @@ function frame(now) {
   }
 
   world.sky.position.copy(camera.position);
+  world.update(dt);
   renderer.clear();
   renderer.render(scene, camera);
   const scoped = curId() && curW().scope && gun.ads > 0.85;
@@ -1036,6 +1208,7 @@ requestAnimationFrame(frame);
 
 // exposed for testing from the browser console
 window.__game = {
-  player, gun, inv, camera, world, nav, god: false,
+  player, gun, inv, camera, world, nav, grenades, god: false, loadMap, MAPS,
+  get stats() { return stats; },
   get run() { return run; }, get state() { return state; },
 };

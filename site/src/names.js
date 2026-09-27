@@ -46,6 +46,6 @@ export function check(raw, existing = []) {
   if (!/[A-Za-z]/.test(name)) return 'Names need at least one letter.';
   if (RESERVED.includes(key(name))) return 'That name is reserved. Pick another.';
   if (rude(name)) return "Let's keep names friendly. Try another.";
-  if (existing.some(e => key(e) === key(name))) return 'That name is taken. If it is you, pick it above.';
+  if (existing.some(e => key(e) === key(name))) return 'You already play as that name on this computer. Tap it above.';
   return null;
 }

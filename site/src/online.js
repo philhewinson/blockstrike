@@ -10,13 +10,19 @@ export const current = () => {
 };
 export const setCurrent = name => localStorage.setItem('blockstrike.current', name);
 
+// Drop a name the server no longer recognises (e.g. removed by hand)
+export function forget(name) {
+  save('blockstrike.accounts', accounts().filter(a => a.name !== name));
+  if (localStorage.getItem('blockstrike.current') === name) localStorage.removeItem('blockstrike.current');
+}
+
 async function call(path, body) {
   try {
     const res = await fetch(`/api/${path}`, body
       ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
       : undefined);
     const data = await res.json().catch(() => ({}));
-    return res.ok ? { ok: true, ...data } : { ok: false, error: data.error || 'Could not reach the leaderboard.' };
+    return res.ok ? { ok: true, ...data } : { ok: false, status: res.status, error: data.error || 'Could not reach the leaderboard.' };
   } catch {
     return { ok: false, error: 'Could not reach the leaderboard. Check the internet connection.' };
   }
@@ -33,6 +39,12 @@ export async function register(name) {
 }
 
 export const board = d => call(`board?d=${d}`);
+
+// This player's own duel wins and survival bests per difficulty: { ok, duel, surv }
+export async function me() {
+  const p = current();
+  return p ? call('me', { name: p.name, token: p.token }) : { ok: false };
+}
 
 // Ask for a match ticket; returns the ticket string or null.
 export async function startMatch(mode, difficulty) {

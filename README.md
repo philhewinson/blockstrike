@@ -19,6 +19,25 @@ WASD move · Mouse look · Click shoot · Right click (hold) or E (toggle) aim �
 - Ammo is limited. Green ammo boxes refill it and your grenades, then reappear elsewhere. Respawning also refills.
 - Health regenerates after 4 seconds without damage. Both sides respawn 3 seconds after being eliminated.
 - Each new survival wave refills health, ammo and grenades.
+- Bots by difficulty (tuning in `DIFF`, weapons in `BOT_WEAPONS`, both in `site/src/bot.js`):
+  - Easy: assault rifle only. Normal: rifle, spray gun or pistol.
+  - Hard and Extreme: each bot carries a primary (rifle or sniper), a secondary (spray gun or pistol) and a knife, and switches by distance (sniper far, secondary close, knife right up close; a knife in your back is instant). They heal out of combat and throw grenades when you hide (Hard 1, Extreme 2 per life). Sniper bots stand still and show a red laser while aiming; on Extreme their sniper is a one-shot kill.
+  - A "GRENADE!" warning flashes when a bot's grenade lands near you.
+
+## Maps
+
+Arena is open from the start. Each other map unlocks from the player's leaderboard numbers, shown with a progress bar in the map picker:
+
+| Map | Unlock | New feature |
+|---|---|---|
+| Crossroads | 10 duel wins on Normal | |
+| Warehouse | Survive 5 waves on Normal | |
+| Rooftops | 10 duel wins on Hard | Jump pads |
+| Canyon | Survive 5 waves on Hard | Teleporters |
+| Fort | 10 duel wins on Extreme | Power-ups: Speed, Shield (+50), Double Damage |
+| Night City | Survive 5 waves on Extreme | Night-time, teleporters and jump pads |
+
+Wins and waves count on any map; there is one shared leaderboard. Bots move between levels (stairs, ledges, drops), ride jump pads and follow you through teleporters; they don't collect power-ups. Waypoints for bots are rebuilt on each map load (`site/src/nav.js`).
 
 ## Players and leaderboard
 
@@ -41,7 +60,8 @@ Each production deploy costs 15 of the free plan's 300 monthly credits, so batch
 | `site/src/weapons.js` | Weapon stats (damage, fire rate, ammo) |
 | `site/src/bot.js` | Bot model and AI; difficulty tuning in `DIFF` at the top |
 | `site/src/weapon.js` | Weapon models on screen and their animations |
-| `site/src/world.js` | Map layout, lighting, ray tests against the level |
+| `site/src/maps.js` | Map layouts, colours, spawn and ammo spots, unlock rules |
+| `site/src/world.js` | Loads a map (blocks, colours, sky, lighting), ray tests against the level, map-picker pictures |
 | `site/src/pickups.js` | Ammo boxes |
 | `site/src/names.js` | Name rules and the rude-word filter (shared with the server) |
 | `site/src/online.js` | Talks to the leaderboard API; keeps this browser's player tokens |

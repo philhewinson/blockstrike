@@ -224,6 +224,10 @@ button { font-family: inherit; cursor: pointer; border: none; color: #fff; }
   80% { opacity: 1; }
   100% { opacity: 0; transform: translateY(-10px); }
 }
+#nade-warn {
+  position: absolute; top: 32%; width: 100%; text-align: center; font-size: 34px; letter-spacing: 4px;
+  color: #ff5a4d; text-shadow: 0 3px 0 #3b0a06, 0 0 20px rgba(0, 0, 0, 0.6); animation: blink 0.25s ease-in-out infinite alternate;
+}
 #toast { position: absolute; top: 68%; width: 100%; text-align: center; font-size: 26px; color: var(--win); opacity: 0; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
 #toast.show { animation: pop 1.1s ease-out; }
 #hint {
@@ -264,3 +268,38 @@ button { font-family: inherit; cursor: pointer; border: none; color: #fff; }
   position: absolute; inset: 0; opacity: 0; transition: opacity 0.3s;
   background: radial-gradient(ellipse at center, transparent 40%, rgba(170, 0, 0, 0.7) 100%);
 }
+
+/* ---------- Map picker */
+.map-chip { width: 100%; justify-content: center; }
+.maps-card { width: min(980px, 94vw); display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.maps-card h2 { color: var(--accent); font-size: 26px; }
+.maps-card .ghost { width: 220px; }
+#map-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; width: 100%; }
+.map-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 10px 12px;
+  border-radius: 16px; background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  font-family: inherit; color: #fff; text-align: center;
+}
+.map-card.open { cursor: pointer; }
+.map-card.open:hover { background: rgba(255, 255, 255, 0.14); }
+.map-card.sel { box-shadow: inset 0 0 0 3px var(--accent); background: rgba(255, 204, 51, 0.14); }
+.map-card.locked { cursor: default; }
+.map-card.locked .map-pic { filter: grayscale(1) brightness(0.55); }
+.map-pic { width: 100%; max-width: 150px; aspect-ratio: 1; border-radius: 10px; image-rendering: pixelated; }
+.map-pic.soon { display: flex; align-items: center; justify-content: center; font-size: 56px; background: rgba(255, 255, 255, 0.06); opacity: 0.5; }
+.lock { position: absolute; top: 60px; font-size: 34px; }
+.map-title { font-size: 17px; letter-spacing: 1px; margin-top: 2px; }
+.map-req { font-size: 12px; letter-spacing: 1px; opacity: 0.7; }
+.map-req.ok { color: var(--win); opacity: 1; }
+.map-sub { font-size: 12px; opacity: 0.75; font-family: system-ui, sans-serif; }
+.map-bar { width: 80%; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+.map-bar i { display: block; height: 100%; background: var(--accent); }
+.map-count { font-size: 12px; color: var(--accent); }
+.unlock { text-align: center; color: var(--win); font-size: 18px; letter-spacing: 1px; animation: glowtext 0.7s ease-in-out infinite alternate; }
+
+/* ---------- Map features */
+#power-hud { font-size: 13px; letter-spacing: 1px; color: var(--accent); margin-top: 4px; min-height: 0; }
+#power-hud:empty { display: none; }
+#vignette-tp { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at center, rgba(120, 240, 255, 0.35), rgba(60, 120, 255, 0.85)); }
+#vignette-tp.show { animation: fade 0.5s ease-out; }
+.map-feat { font-size: 11px; letter-spacing: 1px; color: #7dffb0; }

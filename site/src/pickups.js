@@ -2,18 +2,14 @@ import * as THREE from 'three';
 import { collides } from './physics.js';
 
 // Ammo boxes: a few are out at a time; each one collected reappears somewhere else.
-const SPOTS = [
-  [2.8, 2.5, -2.8], [25, 2.4, 26], [-25, 2.4, -26], [-25, 0, 3], [25, 0, -3], [-23, 0, 21], [23, 0, -21],
-  [-10, 0, 6], [10, 0, -6], [0, 0, 12], [0, 0, -12], [15, 0, 25], [-15, 0, -25], [-18, 0, -12], [18, 0, 12],
-];
 const ACTIVE = 3;
 const RESPAWN = 3;
 
 export class Pickups {
   constructor(scene, world) {
     this.scene = scene;
-    this.spots = SPOTS.map(s => new THREE.Vector3(...s))
-      .filter(p => !collides(new THREE.Vector3(p.x, p.y + 0.05, p.z), 0.4, 1, world.colliders));
+    this.world = world;
+    this.spots = [];
     const boxGeo = new THREE.BoxGeometry(0.6, 0.45, 0.45);
     const bandGeo = new THREE.BoxGeometry(0.62, 0.12, 0.47);
     const beamGeo = new THREE.CylinderGeometry(0.28, 0.28, 7, 12, 1, true).translate(0, 3.5, 0);
@@ -34,6 +30,12 @@ export class Pickups {
       this.items.push({ group: g, box, spot: -1, wait: 0 });
     }
     this.t = 0;
+  }
+
+  // Ammo spots for the current map (any that sit inside a block are skipped)
+  setSpots(list) {
+    this.spots = list.map(s => new THREE.Vector3(...s))
+      .filter(p => !collides(new THREE.Vector3(p.x, p.y + 0.05, p.z), 0.4, 1, this.world.colliders));
     this.reset();
   }
 

@@ -61,7 +61,7 @@ export async function handle(req, store, now = Date.now()) {
     const err = check(name, []);
     if (err) return json(400, { error: err });
     if (await store.get(pkey(name), { type: 'json' })) {
-      return json(409, { error: 'That name is taken. Pick another.' });
+      return json(409, { error: `Someone already has that name. Try adding a number, like ${name.slice(0, 10)}10.` });
     }
     const token = randomBytes(24).toString('base64url');
     await store.setJSON(pkey(name), { name, tokenHash: hash(token), created: now, duel: {}, surv: {}, tickets: {}, recent: [] });
@@ -71,6 +71,9 @@ export async function handle(req, store, now = Date.now()) {
   const p = await auth(store, body.name, body.token);
   if (!p) return json(401, { error: 'Unknown player. Pick your name again.' });
   p.duel ||= {}; p.surv ||= {}; p.tickets ||= {}; p.recent ||= [];
+
+  // Your own totals, for map unlock progress
+  if (route === 'me') return json(200, { duel: p.duel, surv: p.surv });
 
   if (route === 'start') {
     if (!MODES.includes(body.mode) || !DIFFS.includes(body.difficulty)) return json(400, { error: 'Bad match.' });
