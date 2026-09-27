@@ -8,6 +8,7 @@ export const DIFF = {
   easy:   { reaction: 0.9,  spread: 0.055, track: 4.5, damage: 8,  burst: [2, 4],  pause: [0.7, 1.2], speed: 0.8 },
   normal: { reaction: 0.55, spread: 0.036, track: 7,   damage: 11, burst: [3, 6],  pause: [0.45, 0.8], speed: 0.9 },
   hard:   { reaction: 0.22, spread: 0.017, track: 15,  damage: 18, burst: [6, 12], pause: [0.2, 0.4], speed: 1 },
+  extreme: { reaction: 0.12, spread: 0.009, track: 24, damage: 24, burst: [8, 16], pause: [0.1, 0.22], speed: 1.15 },
 };
 
 const rand = (a, b) => a + Math.random() * (b - a);

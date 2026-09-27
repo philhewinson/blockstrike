@@ -9,7 +9,7 @@ import { Pickups } from './pickups.js';
 import { audio } from './audio.js';
 import { WEAPONS, CHOICES, GRENADES } from './weapons.js';
 import * as names from './names.js';
-import * as scores from './scores.js';
+import * as online from './online.js';
 
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -70,6 +70,7 @@ const grenades = [];
 let loadout = { primary: 'rifle', secondary: 'smg', melee: 'knife' };
 try { loadout = { ...loadout, ...JSON.parse(localStorage.getItem('blockstrike.loadout')) }; } catch {}
 let difficulty = localStorage.getItem('blockstrike.diff') || 'normal';
+if (!['easy', 'normal', 'hard', 'extreme'].includes(difficulty)) difficulty = 'normal';
 let state = 'menu'; // menu | locking | playing | paused | over
 let run = null;
 let menuT = 0;
@@ -245,11 +246,14 @@ function startMatch(mode) {
     you: 0, them: 0, botRespawn: 1,                         // duel
     wave: 0, cleared: 0, toSpawn: 0, spawnT: 0, breakT: 1,  // survival
   };
+  run.ticket = online.startMatch(mode, difficulty); // the server's one-use ticket for this match
   spawnPlayer(world.playerSpawn, world.spawnYaw);
   pickups.reset();
   $('dmg-ring').innerHTML = '';
   $('top-duel').classList.toggle('hidden', mode !== 'duel');
   $('top-surv').classList.toggle('hidden', mode !== 'survival');
+  $('diff-tag').textContent = difficulty.toUpperCase();
+  $('diff-tag').dataset.d = difficulty;
   $('menu').classList.add('hidden');
   $('gameover').classList.add('hidden');
   $('pause').classList.add('hidden');
@@ -376,32 +380,40 @@ function endMatch() {
   $('center-msg').classList.add('hidden');
 
   const d = run.difficulty, D = d.toUpperCase();
-  const name = scores.current();
   const title = $('go-title'), best = $('go-best');
+  const saving = text => { best.textContent = text; best.className = 'oldbest'; };
+  let save = null;
   if (run.mode === 'duel') {
     const win = run.you >= WIN;
-    const wins = win ? scores.addWin(d, name) : scores.winsFor(d, name);
-    const winsText = `${wins} ${wins === 1 ? 'WIN' : 'WINS'} ON ${D}`;
     title.textContent = win ? 'VICTORY!' : 'DEFEAT';
     title.className = win ? 'win' : 'loss';
     $('go-main').innerHTML = `<div class="go-score"><span>${run.you}</span><em>–</em><span>${run.them}</span></div>
       <div class="go-labels"><span>YOU</span><span>BOT</span></div>`;
-    best.textContent = win ? `+1 WIN · ${winsText}` : winsText;
-    best.className = win ? 'newhs' : 'oldbest';
-    if (win) audio.victory(); else audio.defeat();
+    saving(win ? 'Saving your win…' : '');
+    if (win) {
+      audio.victory();
+      save = online.finishMatch(run.ticket, { you: run.you, them: run.them }).then(r => {
+        if (!r.ok) return saving(r.error);
+        best.textContent = `+1 WIN · ${r.wins} ${r.wins === 1 ? 'WIN' : 'WINS'} ON ${D}`;
+        best.className = 'newhs';
+      });
+    } else audio.defeat();
   } else {
     const waves = run.cleared;
-    const r = scores.recordWaves(d, name, waves);
     title.textContent = 'YOU SURVIVED';
     title.className = 'win';
     $('go-main').innerHTML = `<div class="go-score"><span>${waves}</span></div>
       <div class="go-labels"><span>${waves === 1 ? 'WAVE' : 'WAVES'}</span></div>`;
-    best.textContent = r.isBest ? 'NEW BEST!' : r.best ? `Your best on ${D}: ${r.best} waves` : 'Clear wave 1 to get on the board!';
-    best.className = r.isBest ? 'newhs' : 'oldbest';
-    if (r.isBest) audio.victory(); else audio.defeat();
+    saving('Saving…');
+    save = online.finishMatch(run.ticket, { waves }).then(r => {
+      if (!r.ok) { audio.defeat(); return saving(r.error); }
+      if (r.isBest) { audio.victory(); best.textContent = 'NEW BEST!'; best.className = 'newhs'; }
+      else { audio.defeat(); saving(r.best ? `Your best on ${D}: ${r.best} ${r.best === 1 ? 'wave' : 'waves'}` : 'Clear wave 1 to get on the board!'); }
+    });
   }
   $('go-time').textContent = `${run.mode === 'duel' ? 'DUEL' : 'SURVIVAL'} · ${D} · ${fmtTime(run.time)}`;
   renderBoards('go', d);
+  if (save) save.then(() => renderBoards('go', d)); // refresh once the result is in
   $('gameover').classList.remove('hidden');
   cleanupMatch();
 }
@@ -879,15 +891,28 @@ function esc(s) {
 
 // Leaderboard: duel wins and survival best wave, side by side, for one difficulty.
 // prefix is 'menu' or 'go' (the home screen or the end screen).
-function renderBoards(prefix, d) {
+// Leaderboard from the server: duel wins and survival best wave, side by side, for one difficulty.
+// prefix is 'menu' or 'go' (the home screen or the end screen).
+const boardCache = {};
+let boardReq = 0;
+async function renderBoards(prefix, d) {
   document.querySelectorAll('.board-diff').forEach(e => { e.textContent = d.toUpperCase(); });
-  const me = names.key(scores.current() || '');
+  const me = names.key(online.current()?.name || '');
   const rows = (list, value, empty) => list.length
     ? list.map((e, i) => `<li class="${names.key(e.name) === me ? 'me' : ''}"><span class="rank">${i + 1}</span>
         <span class="name">${esc(e.name)}</span><span class="val">${value(e)}</span></li>`).join('')
     : `<li class="empty">${empty}</li>`;
-  $(`${prefix}-duel`).innerHTML = rows(scores.duelBoard(d), e => e.wins, 'No wins yet');
-  $(`${prefix}-surv`).innerHTML = rows(scores.survivalBoard(d), e => e.waves, 'No waves yet');
+  const show = b => {
+    $(`${prefix}-duel`).innerHTML = rows(b.duel, e => e.wins, 'No wins yet');
+    $(`${prefix}-surv`).innerHTML = rows(b.survival, e => e.waves, 'No waves yet');
+  };
+  if (boardCache[d]) show(boardCache[d]);
+  else for (const c of ['duel', 'surv']) $(`${prefix}-${c}`).innerHTML = '<li class="empty">Loading…</li>';
+  const req = ++boardReq;
+  const b = await online.board(d);
+  if (req !== boardReq && prefix === 'menu') return; // a newer request (e.g. difficulty switch) is on its way
+  if (b.ok) { boardCache[d] = b; show(b); }
+  else if (!boardCache[d]) for (const c of ['duel', 'surv']) $(`${prefix}-${c}`).innerHTML = '<li class="empty">Leaderboard offline</li>';
 }
 
 function selectDifficulty(d) {
@@ -913,17 +938,19 @@ document.querySelectorAll('.choice button').forEach(b => b.addEventListener('cli
 document.querySelectorAll('#diff button').forEach(b => b.addEventListener('click', () => selectDifficulty(b.dataset.d)));
 
 // ---- Who's playing
+// Names are registered with the server; each one is owned by the browser that registered it.
 function openNames() {
-  const list = scores.players();
-  const cur = scores.current();
-  $('player-list').innerHTML = list.map(n =>
-    `<button type="button" class="${cur && names.key(n) === names.key(cur) ? 'sel' : ''}" data-n="${esc(n)}">${esc(n)}</button>`).join('');
+  const list = online.accounts();
+  const cur = online.current();
+  $('player-list').innerHTML = list.map(a =>
+    `<button type="button" class="${cur && a.name === cur.name ? 'sel' : ''}" data-n="${esc(a.name)}">${esc(a.name)}</button>`).join('');
   $('player-list').classList.toggle('hidden', !list.length);
   $('player-list').querySelectorAll('button').forEach(b => b.addEventListener('click', () => choosePlayer(b.dataset.n)));
   $('name-title').textContent = list.length ? "WHO'S PLAYING?" : "WHAT'S YOUR NAME?";
   $('name-new-label').classList.toggle('hidden', !list.length);
   $('name-cancel').classList.toggle('hidden', !cur);
-  $('name-input').value = '';
+  // A name picked before the online leaderboard existed is offered again
+  $('name-input').value = list.length ? '' : (localStorage.getItem('blockstrike.current') || '');
   $('name-error').textContent = '';
   $('menu').classList.add('hidden'); // the name card stands alone, not on top of the home screen
   $('names').classList.remove('hidden');
@@ -936,23 +963,30 @@ function closeNames() {
 }
 
 function choosePlayer(n) {
-  scores.setCurrent(n);
+  online.setCurrent(n);
   $('player-name').textContent = n;
   closeNames();
   renderBoards('menu', difficulty);
 }
 
-$('name-form').addEventListener('submit', e => {
+$('name-form').addEventListener('submit', async e => {
   e.preventDefault();
-  const err = names.check($('name-input').value, scores.players());
+  const raw = $('name-input').value;
+  const err = names.check(raw, online.accounts().map(a => a.name));
   if (err) { $('name-error').textContent = err; return; }
-  choosePlayer(names.tidy($('name-input').value));
+  const btn = $('name-form').querySelector('button');
+  btn.disabled = true;
+  $('name-error').textContent = '';
+  const r = await online.register(names.tidy(raw));
+  btn.disabled = false;
+  if (!r.ok) { $('name-error').textContent = r.error; return; }
+  choosePlayer(r.name);
 });
 $('name-input').addEventListener('input', () => { $('name-error').textContent = ''; });
 $('name-cancel').addEventListener('click', closeNames);
 $('player-chip').addEventListener('click', openNames);
 
-const play = mode => { if (!scores.current()) openNames(); else startMatch(mode); };
+const play = mode => { if (!online.current()) openNames(); else startMatch(mode); };
 $('duel-btn').addEventListener('click', () => play('duel'));
 $('surv-btn').addEventListener('click', () => play('survival'));
 $('resume-btn').addEventListener('click', () => { state = 'locking'; requestLock(); });
@@ -968,7 +1002,7 @@ const touchOnly = !matchMedia('(any-pointer: fine)').matches;
 if (touchOnly) {
   $('menu').classList.add('hidden');
   $('desktop-only').classList.remove('hidden');
-} else if (scores.current()) $('player-name').textContent = scores.current();
+} else if (online.current()) $('player-name').textContent = online.current().name;
 else openNames();
 
 // ---------------------------------------------------------------- Main loop

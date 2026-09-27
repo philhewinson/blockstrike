@@ -1,12 +1,12 @@
 # Block Strike
 
-A blocky first-person shooter in the browser. Two modes: **Duel** (you vs a bot, first to 5) and **Survival** (one life; wave N sends N bots, up to 8).
+A blocky first-person shooter in the browser. Two modes: **Duel** (you vs a bot, first to 5) and **Survival** (one life; wave N sends N bots, up to 8). Four difficulties: Easy, Normal, Hard, Extreme.
 
-## Play
+Live: https://blockstrike.netlify.app
 
-Double-click `play.command` (starts a local server on port 8765 and opens the browser). Or: `python3 -m http.server 8765` in this folder, then open http://localhost:8765.
+## Play locally
 
-Keep port 8765: players and scores are stored in the browser per address, so a different port shows an empty board.
+Double-click `play.command`. It runs `server/dev-server.mjs` (Node) on port 8765, which serves `site/` plus a local copy of the leaderboard API, stored in `.netlify/local-scores.json`. The local board is separate from the live one.
 
 ## Controls
 
@@ -18,26 +18,37 @@ WASD move · Mouse look · Click shoot · Right click (hold) or E (toggle) aim �
 - Knife in the back, or a knife hit while sliding (C while running), is an instant elimination.
 - Ammo is limited. Green ammo boxes refill it and your grenades, then reappear elsewhere. Respawning also refills.
 - Health regenerates after 4 seconds without damage. Both sides respawn 3 seconds after being eliminated.
+- Each new survival wave refills health, ammo and grenades.
 
 ## Players and leaderboard
 
-Players pick a name once (3–12 characters, unique on this device, rude words blocked). The leaderboard follows the selected difficulty and has two columns: **Duel wins** (total) and **Survival waves** (best number of waves cleared). Leaving a duel records nothing; leaving a survival run keeps the waves already cleared. Each new survival wave refills health, ammo and grenades.
+- A player picks a nickname once (3–12 characters, rude words blocked). The server checks it is unique across everyone and gives that browser a secret token, so only that browser can post scores under the name. The same name can't be used from a second device.
+- The leaderboard follows the selected difficulty: **Duel wins** (total) and **Survival waves** (best number of waves cleared).
+- Leaving a duel records nothing; leaving a survival run keeps the waves already cleared.
+- Anti-cheat (in `server/core.mjs`): one-use match tickets from the server, results must be possible (a duel win is 5 kills and at least 30 seconds; survival allows at most one wave per 4 seconds), and at most 30 results per player per hour. Stops casual cheating, not a determined programmer.
+
+## Hosting
+
+Netlify, free plan, deploying from GitHub `main`. `netlify.toml` publishes `site/` and bundles `netlify/functions/api.mjs`, which stores players in Netlify Blobs (store `blockstrike`, one blob per player under `p/<name>`).
+
+Each production deploy costs 15 of the free plan's 300 monthly credits, so batch changes before pushing. If the credits run out, Netlify pauses the site until next month; it never charges on the free plan.
 
 ## Code
 
 | File | What it does |
 |---|---|
-| `src/main.js` | Match flow, player, shooting, melee, grenades, HUD, menus |
-| `src/weapons.js` | Weapon stats (damage, fire rate, ammo) |
-| `src/bot.js` | Bot model and AI; difficulty tuning in `DIFF` at the top |
-| `src/weapon.js` | Weapon models on screen and their animations |
-| `src/world.js` | Map layout, lighting, ray tests against the level |
-| `src/pickups.js` | Ammo boxes |
-| `src/names.js` | Name rules and the rude-word filter |
-| `src/scores.js` | Players and best scores (browser storage; swap for a server when hosting) |
-| `src/nav.js` | Waypoints and pathfinding for the bot |
-| `src/physics.js` | Movement and collision |
-| `src/effects.js` | Sparks, tracers, explosions, elimination burst |
-| `src/audio.js` | Synthesised sounds |
-
-Static files only, so it can be hosted as-is on GitHub Pages or Netlify.
+| `site/src/main.js` | Match flow, player, shooting, melee, grenades, HUD, menus |
+| `site/src/weapons.js` | Weapon stats (damage, fire rate, ammo) |
+| `site/src/bot.js` | Bot model and AI; difficulty tuning in `DIFF` at the top |
+| `site/src/weapon.js` | Weapon models on screen and their animations |
+| `site/src/world.js` | Map layout, lighting, ray tests against the level |
+| `site/src/pickups.js` | Ammo boxes |
+| `site/src/names.js` | Name rules and the rude-word filter (shared with the server) |
+| `site/src/online.js` | Talks to the leaderboard API; keeps this browser's player tokens |
+| `site/src/nav.js` | Waypoints and pathfinding for the bot |
+| `site/src/physics.js` | Movement and collision |
+| `site/src/effects.js` | Sparks, tracers, explosions, elimination burst |
+| `site/src/audio.js` | Synthesised sounds |
+| `server/core.mjs` | Leaderboard API: names, match tickets, results, board |
+| `server/dev-server.mjs` | Local server for the game plus the API |
+| `netlify/functions/api.mjs` | Runs the API on Netlify with Blobs storage |

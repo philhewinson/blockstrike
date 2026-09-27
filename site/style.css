@@ -66,6 +66,8 @@ button { font-family: inherit; cursor: pointer; border: none; color: #fff; }
 .diff button.sel[data-d=easy] { background: #34c56a; }
 .diff button.sel[data-d=normal] { background: #2f9fe0; }
 .diff button.sel[data-d=hard] { background: #f0503f; }
+.diff button.sel[data-d=extreme] { background: #8b3dff; }
+.diff button { font-size: 16px; }
 .mode-note { font-size: 14px; letter-spacing: 2px; opacity: 0.85; }
 .controls {
   position: absolute; bottom: 18px; left: 0; right: 0; display: flex; flex-wrap: wrap; justify-content: center;
@@ -163,6 +165,14 @@ button { font-family: inherit; cursor: pointer; border: none; color: #fff; }
 #topbar .bot { background: rgba(255, 90, 80, 0.25); }
 #topbar .mid { padding: 0 14px; font-size: 11px; letter-spacing: 2px; opacity: 0.75; }
 
+#diff-tag {
+  position: absolute; top: 72px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: 3px;
+  padding: 3px 10px; border-radius: 999px; background: var(--panel); opacity: 0.85;
+}
+#diff-tag[data-d=easy] { color: #4ade80; }
+#diff-tag[data-d=normal] { color: #6cc4ff; }
+#diff-tag[data-d=hard] { color: #ff7a6b; }
+#diff-tag[data-d=extreme] { color: #c49bff; }
 #crosshair { position: absolute; left: 50%; top: 50%; --gap: 6px; transition: opacity 0.1s; }
 #crosshair i { position: absolute; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55); }
 #crosshair .t { width: 2px; height: 9px; left: -1px; top: calc(-1 * var(--gap) - 9px); }
