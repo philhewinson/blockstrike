@@ -925,14 +925,20 @@ function openNames() {
   $('name-cancel').classList.toggle('hidden', !cur);
   $('name-input').value = '';
   $('name-error').textContent = '';
+  $('menu').classList.add('hidden'); // the name card stands alone, not on top of the home screen
   $('names').classList.remove('hidden');
   setTimeout(() => $('name-input').focus(), 30);
+}
+
+function closeNames() {
+  $('names').classList.add('hidden');
+  $('menu').classList.remove('hidden');
 }
 
 function choosePlayer(n) {
   scores.setCurrent(n);
   $('player-name').textContent = n;
-  $('names').classList.add('hidden');
+  closeNames();
   renderBoards('menu', difficulty);
 }
 
@@ -943,7 +949,7 @@ $('name-form').addEventListener('submit', e => {
   choosePlayer(names.tidy($('name-input').value));
 });
 $('name-input').addEventListener('input', () => { $('name-error').textContent = ''; });
-$('name-cancel').addEventListener('click', () => $('names').classList.add('hidden'));
+$('name-cancel').addEventListener('click', closeNames);
 $('player-chip').addEventListener('click', openNames);
 
 const play = mode => { if (!scores.current()) openNames(); else startMatch(mode); };
