@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Block Strike</title>
   <link rel="icon" href="data:,">
+  <script>
+    // Phone or tablet? Decided before anything else loads, from several signs at once, so a phone
+    // never starts the 3D game (some Android phones and "desktop site" modes claim to have a mouse).
+    // Add ?mobile or ?desktop to the address to force either, for testing.
+    (function () {
+      var q = location.search, ua = navigator.userAgent || '';
+      var mm = function (m) { return !!(window.matchMedia && matchMedia(m).matches); };
+      var named = /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|Opera Mini|IEMobile|BlackBerry/i.test(ua)
+        || !!(navigator.userAgentData && navigator.userAgentData.mobile);
+      var iPad = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1; // iPads that say "Mac"
+      var touchOnly = mm('(pointer: coarse)') && !mm('(any-pointer: fine)');
+      var smallTouch = navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 820 && !mm('(hover: hover)');
+      var mobile = /[?&]mobile\b/.test(q) || (!/[?&]desktop\b/.test(q) && (named || iPad || touchOnly || smallTouch));
+      window.__isMobile = mobile;
+      if (mobile) document.documentElement.classList.add('mobile');
+    })();
+  </script>
   <link rel="stylesheet" href="style.css">
   <script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
 </head>
@@ -102,14 +119,7 @@
     </div>
   </div>
 
-  <div id="desktop-only" class="screen hidden">
-    <div class="card center">
-      <h1 class="logo small">BLOCK<span>STRIKE</span></h1>
-      <h2>PLAY ON A COMPUTER</h2>
-      <p class="lead">Block Strike needs a keyboard and mouse. Open this page on a laptop or desktop to play.</p>
-      <p class="sub">Touch controls may come later.</p>
-    </div>
-  </div>
+  <div id="mobile" class="hidden"></div>
 
   <div id="maps" class="screen hidden">
     <div class="card maps-card">
@@ -167,6 +177,6 @@
     </div>
   </div>
 
-  <script type="module" src="src/main.js"></script>
+  <script type="module" src="src/boot.js"></script>
 </body>
 </html>

@@ -8,6 +8,10 @@ Live: https://blockstrike.netlify.app
 
 Double-click `play.command`. It runs `server/dev-server.mjs` (Node) on port 8765, which serves `site/` plus a local copy of the leaderboard API, stored in `.netlify/local-scores.json`. The local board is separate from the live one.
 
+## Phones and tablets
+
+Phones and tablets never load the game. A check at the top of `site/index.html` (phone/tablet names in the browser, iPads that report as a Mac, touch-only screens, small touchscreens without a mouse) sends them to a page with a "play on a computer" message and the leaderboard for all four difficulties (`site/src/mobile.js`). Computers whose browser can't run the 3D game get the same page with a different message. Add `?mobile` or `?desktop` to the address to force either view.
+
 ## Controls
 
 WASD move · Mouse look · Click shoot · Right click (hold) or E (toggle) aim · 1 2 3 / scroll switch weapon · R reload · G grenade · Space jump · Shift sprint · C slide · Esc pause
@@ -56,6 +60,8 @@ Each production deploy costs 15 of the free plan's 300 monthly credits, so batch
 
 | File | What it does |
 |---|---|
+| `site/src/boot.js` | Loads the game on computers, or the phone/tablet page |
+| `site/src/mobile.js` | Phone/tablet page: play-on-a-computer message and leaderboard |
 | `site/src/main.js` | Match flow, player, shooting, melee, grenades, HUD, menus |
 | `site/src/weapons.js` | Weapon stats (damage, fire rate, ammo) |
 | `site/src/bot.js` | Bot model and AI; difficulty tuning in `DIFF` at the top |

@@ -1165,13 +1165,8 @@ $('maps-close').addEventListener('click', closeMaps);
 
 selectDifficulty(difficulty);
 renderLoadout();
-// Touch-only phones and tablets have no mouse to aim with (and no pointer lock on iOS).
-// Asking about the pointer rather than the device name also lets an iPad with a mouse through.
-const touchOnly = !matchMedia('(any-pointer: fine)').matches;
-if (touchOnly) {
-  $('menu').classList.add('hidden');
-  $('desktop-only').classList.remove('hidden');
-} else if (online.current()) {
+// (Phones and tablets never get here: boot.js sends them to the leaderboard-only page.)
+if (online.current()) {
   $('player-name').textContent = online.current().name;
   refreshStats();
 } else openNames();

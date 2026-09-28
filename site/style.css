@@ -28,8 +28,6 @@ button { font-family: inherit; cursor: pointer; border: none; color: #fff; }
 }
 .logo span { display: block; color: var(--accent); }
 .logo.small { font-size: 52px; }
-#desktop-only .card { width: min(400px, 88vw); text-align: center; }
-#desktop-only h2 { font-size: 26px; }
 .lead { font-size: 17px; line-height: 1.4; font-family: system-ui, sans-serif; }
 .chip {
   background: rgba(12, 18, 36, 0.75); border-radius: 999px; padding: 8px 8px 8px 18px; font-size: 13px;
@@ -303,3 +301,35 @@ button { font-family: inherit; cursor: pointer; border: none; color: #fff; }
 #vignette-tp { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at center, rgba(120, 240, 255, 0.35), rgba(60, 120, 255, 0.85)); }
 #vignette-tp.show { animation: fade 0.5s ease-out; }
 .map-feat { font-size: 11px; letter-spacing: 1px; color: #7dffb0; }
+
+/* ---------- Phones and tablets: no game, just the message and the leaderboard */
+html.mobile #hud, html.mobile #menu, html.mobile #names, html.mobile #maps,
+html.mobile #pause, html.mobile #gameover { display: none !important; }
+html.mobile, html.mobile body { height: auto; overflow: auto; }
+html.mobile { min-height: 100%; background: linear-gradient(180deg, #3d9cf0 0%, #7fbcee 40%, #1b2a55 100%); }
+html.mobile body { min-height: 100vh; background: transparent; }
+/* fills the screen: logo, message and leaderboard spread down the page, with the 3D arena showing between */
+#mobile {
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
+  gap: 18px; min-height: 100vh; min-height: 100dvh; padding: 24px 14px calc(24px + env(safe-area-inset-bottom));
+}
+#mobile .logo { text-shadow: 0 6px 0 #1b2a55, 0 10px 34px rgba(0, 0, 0, 0.55); }
+#mobile .m-card { background: rgba(12, 18, 36, 0.72); }
+#mobile .logo.small { font-size: clamp(44px, 14vw, 96px); }
+.m-card { width: min(520px, 100%); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 20px 16px; }
+.m-card h2 { font-size: 22px; letter-spacing: 1px; }
+.m-card .lead { font-size: 16px; }
+.m-link { display: flex; gap: 8px; align-items: center; width: 100%; background: rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 6px 6px 12px; }
+.m-link span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; font-family: system-ui, sans-serif; font-size: 15px; }
+.m-link button { font-size: 14px; padding: 10px 12px; border-radius: 10px; background: #34c56a; white-space: nowrap; }
+.m-board-title { color: var(--accent); }
+.m-tabs button { font-size: 13px; padding: 10px 0; }
+.board-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; text-align: left; }
+.board-cols h3 { font-size: 11px; letter-spacing: 1.5px; opacity: 0.7; margin-bottom: 6px; }
+.board-cols ol { list-style: none; }
+.board-cols li { display: grid; grid-template-columns: 18px 1fr auto; gap: 4px; align-items: center; padding: 7px 6px; border-radius: 8px; font-size: 15px; }
+.board-cols li:nth-child(odd) { background: rgba(255, 255, 255, 0.05); }
+.board-cols li .rank { opacity: 0.6; font-size: 12px; }
+.board-cols li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-cols li .val { color: var(--accent); }
+.board-cols li.empty { display: block; opacity: 0.6; font-size: 13px; background: none; }
