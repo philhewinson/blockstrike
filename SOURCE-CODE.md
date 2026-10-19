@@ -7,8 +7,8 @@ Block Strike is a blocky first-person shooter that runs in the browser. It was b
 - **Play:** https://blockstrike.netlify.app (a laptop or desktop with keyboard and mouse)
 - **Generated code:** https://github.com/philhewinson/blockstrike
 - **Built with:** Claude Code, model Claude Opus 5.5, effort level high
-- **When:** Sunday 27 September 2026, 11:53 to 15:16 BST, then Monday 28 September, 10:37 to 11:20 BST. About 4½ hours in all.
-- **Prompts:** 48, pasted below exactly as sent, typos and all
+- **When:** Sunday 27 September 2026, 11:53 to 15:16 BST, then Monday 28 September, 10:37 to 11:20 BST, then Monday 19 October, 09:43 to 10:38 and 12:20 BST (alongside Presto). About 5½ hours in all.
+- **Prompts:** 53, pasted below exactly as sent, typos and all
 
 ## What those prompts produced
 
@@ -18,6 +18,7 @@ Block Strike is a blocky first-person shooter that runs in the browser. It was b
 - Seven maps unlocked through play, with jump pads, teleporters, power-ups and a night map
 - Unique, filtered player names and an online leaderboard with basic anti-cheat
 - Hosted free on Netlify, with a phone and tablet page that shows the leaderboard
+- A "made with Multiply Academy" credit, matching the one in Presto
 
 ## Using this file
 
@@ -397,4 +398,44 @@ So it just needs a bit of thought. Tell me your thoughts before you write it up 
 
 ```text
 Yeah, that sounds good. Please do, go ahead.
+```
+
+### 49 · Mon 19 Oct 2026, 09:47
+
+```text
+we need to make a couple of reasonable size changes. one is I think it'd be nice to promote multiply academy in a not a not too overly overt way in like a nicely designed way. point people, something along the lines of you know, this app w or game or whatever you want to call it was made using the skills taught through Multiply Academy.
+
+You know, to learn how to you know, like and and pointing them to the website, do you know what I mean? with like tracking parameters. And then once we got that nicely designed, if we can do that in a consistent way on the FPS game as well. And then secondly, Anita shed the feedback that she needs Elijah to have a say his progress saved. ideally across devices.
+
+How can we best achieve that? Tell me your thoughts.
+```
+
+### 50 · Mon 19 Oct 2026, 09:53
+
+```text
+Cool. Sounds good. Sounds your questions. Yeah, the link target should be the home page. I think the wording is fine. Elijah plays on both Anita's Android phone and also our Mac Mini with a monitor. But obviously we want to support it so it works generally. does that mean that progress will be saved even on a single device?
+
+Let's say you plays it after seven days or 14 days, it'll still persist. Like are you saving it on the server every time? And is that the net net lify server?
+```
+
+### 51 · Mon 19 Oct 2026, 10:28
+
+```text
+How can I test?
+```
+
+### 52 · Mon 19 Oct 2026, 10:34
+
+```text
+Sorry, I'm a bit confused. this is what I'm seeing. I can't see the QR thing. [Image #2]
+```
+
+*With a screenshot of Presto's grown-ups sync card showing no code yet (a bug, fixed in reply).*
+
+### 53 · Mon 19 Oct 2026, 12:20
+
+```text
+yeah, I can see the QR code now. I can't l open localhost on my mobile, so is it best just to deploy it and then I'll test there. Also, have you done this for the FPS game to the multiply academy links link or links, you know, in messaging?
+
+If so, let's deploy that too. if not let's do that and deploy that too. Once everything's deployed, tell me exactly what steps I can I should test on both to make sure things are working briefly.
 ```

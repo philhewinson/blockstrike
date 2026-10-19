@@ -69,6 +69,7 @@ fpsgame/
 | Maps, unlock rules, map features | `site/src/maps.js` (build API described at the top) |
 | Name rules, rude-word list | `site/src/names.js` |
 | Anti-cheat limits | constants at the top of `server/core.mjs` |
+| "Made with Multiply Academy" plate (menu corner, phone page) | `#menu .made-with` in `site/index.html`, `site/src/mobile.js`, `.made-with` in `site/style.css`; logo `site/multiply-academy.svg`. Matches Presto's `MadeWith` |
 
 ## Gotchas
 

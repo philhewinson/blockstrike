@@ -25,7 +25,13 @@ export function show(reason) {
         <div><h3>DUEL WINS</h3><ol id="m-duel"></ol></div>
         <div><h3>SURVIVAL WAVES</h3><ol id="m-surv"></ol></div>
       </div>
-    </div>`;
+    </div>
+    <a class="made-with" href="https://multiply.academy/?utm_source=blockstrike&utm_medium=app&utm_campaign=made-with&utm_content=mobile" target="_blank" rel="noopener">
+      <span class="mw-eyebrow">How this was made</span>
+      <img class="mw-logo" src="multiply-academy.svg" alt="Multiply Academy" width="196" height="27">
+      <span class="mw-text">Made by a dad with AI, using the skills taught at Multiply Academy.</span>
+      <span class="mw-cta">Learn to build your own →</span>
+    </a>`;
   el.classList.remove('hidden');
 
   const copy = document.getElementById('m-copy');
